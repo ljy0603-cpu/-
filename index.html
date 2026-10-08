@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b2e">
+  <title>주차 요금 계산기</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      --ink: #17243b;
+      --muted: #77849a;
+      --line: #e8edf3;
+      --blue: #3867f5;
+      --blue-dark: #244ed2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 48px 20px;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 50% -20%, #324d7b 0, transparent 42%),
+        #101b2e;
+    }
+
+    button, input { font: inherit; }
+
+    .page { width: min(100%, 1040px); margin: 0 auto; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      color: #dce6f7;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 14px; font-weight: 750; letter-spacing: .03em; }
+    .brand-mark {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 1px solid #ffffff2b;
+      border-radius: 12px;
+      background: #ffffff12;
+      color: #8eafff;
+      font-size: 17px;
+    }
+    .status { display: flex; align-items: center; gap: 8px; color: #b8c5d9; font-size: 12px; }
+    .status::before { width: 7px; height: 7px; border-radius: 50%; background: #57d8a0; content: ""; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(310px, .88fr);
+      overflow: hidden;
+      border: 1px solid #ffffff20;
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: 0 28px 80px #050b1680;
+    }
+
+    .calculator { padding: clamp(28px, 5vw, 56px); }
+    .eyebrow { margin: 0 0 13px; color: var(--blue); font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); letter-spacing: -.055em; line-height: 1.18; }
+    .intro { margin: 13px 0 34px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+    .field-label { display: block; margin-bottom: 12px; font-size: 13px; font-weight: 750; }
+    .time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      height: 68px;
+      padding: 0 17px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfcfe;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+    .input-wrap:focus-within { border-color: #8aa6ff; background: #fff; box-shadow: 0 0 0 4px #3867f51a; }
+    .input-wrap input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 25px; font-weight: 750; }
+    .input-wrap input::placeholder { color: #c3ccda; }
+    .unit { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+    .quick-label { margin: 23px 0 10px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .quick-times { display: flex; flex-wrap: wrap; gap: 8px; }
+    .quick-times button {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #53627a;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .16s ease;
+    }
+    .quick-times button:hover, .quick-times button:focus-visible { border-color: #b9c9ff; outline: 0; background: #f3f6ff; color: var(--blue-dark); }
+
+    .error { min-height: 20px; margin: 10px 0 0; color: #c43c4b; font-size: 12px; }
+    .calculate {
+      display: flex;
+      width: 100%;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 13px;
+      background: var(--blue);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 750;
+      box-shadow: 0 8px 18px #3867f538;
+      transition: transform .16s ease, background .16s ease;
+    }
+    .calculate:hover { transform: translateY(-1px); background: var(--blue-dark); }
+    .calculate:focus-visible { outline: 3px solid #9db4ff; outline-offset: 3px; }
+
+    .result-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(28px, 4vw, 44px);
+      background:
+        radial-gradient(ellipse at 110% 0%, #dce7ff 0, transparent 47%),
+        #f5f7fb;
+    }
+    .result-panel::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #3867f5, #7ca2ff);
+      content: "";
+    }
+    .result-kicker { margin: 0; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .price { display: flex; align-items: baseline; gap: 7px; margin: 14px 0 6px; }
+    .price strong { font-size: clamp(46px, 6vw, 64px); letter-spacing: -.065em; line-height: 1; }
+    .price span { color: #54627a; font-size: 19px; font-weight: 700; }
+    .result-time { margin: 0; color: #526078; font-size: 14px; }
+    .result-divider { height: 1px; margin: 27px 0 22px; background: #e1e7f0; }
+    .tier-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; font-size: 12px; font-weight: 750; }
+    .tier-heading span:last-child { color: var(--blue); }
+    .progress-track { height: 7px; overflow: hidden; border-radius: 99px; background: #e1e7f0; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3867f5, #83a3ff); transition: width .3s ease; }
+    .next-tier { min-height: 37px; margin: 11px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .tariff {
+      margin-top: 23px;
+      padding: 17px;
+      border: 1px solid #e6ebf3;
+      border-radius: 14px;
+      background: #ffffffb8;
+    }
+    .tariff-title { margin: 0 0 11px; color: #394860; font-size: 11px; font-weight: 800; }
+    .tariff-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; color: #718096; font-size: 11px; }
+    .tariff-row strong { color: #37455c; font-weight: 700; white-space: nowrap; }
+    .notice { margin: 14px 0 0; color: #8792a4; font-size: 10px; line-height: 1.6; }
+
+    @media (max-width: 760px) {
+      body { padding: 28px 15px; }
+      .layout { grid-template-columns: 1fr; }
+      .calculator { padding-bottom: 30px; }
+      .result-panel { min-height: 360px; }
+    }
+    @media (max-width: 390px) {
+      .topbar { align-items: flex-start; }
+      .status { padding-top: 9px; font-size: 10px; }
+      .calculator, .result-panel { padding-right: 22px; padding-left: 22px; }
+      .input-wrap { padding: 0 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+
+    .kiosk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+    .kiosk-header h1 { font-size: clamp(25px, 3vw, 32px); }
+    .step-chip { padding: 8px 11px; border-radius: 999px; background: #edf2ff; color: #3867f5; font-size: 11px; font-weight: 750; white-space: nowrap; }
+    .step-chip::before { content: "●"; margin-right: 6px; font-size: 8px; }
+    .intro { margin-bottom: 25px; }
+    .field-group { margin-top: 20px; }
+    .field-label { margin-bottom: 9px; }
+    .plate-input, .datetime-input {
+      width: 100%;
+      height: 54px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      outline: 0;
+      background: #fbfcfe;
+      color: var(--ink);
+      font-size: 15px;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+    .plate-input { font-size: 19px; font-weight: 750; letter-spacing: .06em; }
+    .plate-input:focus, .datetime-input:focus { border-color: #8aa6ff; background: #fff; box-shadow: 0 0 0 4px #3867f51a; }
+    .time-inputs { gap: 10px; }
+    .quick-label { margin-top: 17px; }
+    .quick-times button { min-height: 32px; }
+    .calculate { margin-top: 8px; }
+    .result-panel { gap: 24px; }
+    .ticket {
+      padding: 19px;
+      border: 1px solid #e4e9f1;
+      border-radius: 15px;
+      background: #fff;
+    }
+    .ticket-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .ticket-head strong { font-size: 12px; }
+    .ticket-head span { color: #8792a4; font-size: 10px; }
+    .ticket-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; color: #7a8799; font-size: 11px; }
+    .ticket-row strong { color: #334259; font-weight: 700; text-align: right; }
+    .payment-area { margin-top: 19px; }
+    .payment-title { margin: 0 0 10px; font-size: 11px; font-weight: 800; }
+    .payment-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .payment-option {
+      min-height: 40px;
+      border: 1px solid #e4e9f1;
+      border-radius: 9px;
+      background: #fff;
+      color: #647188;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .payment-option[aria-pressed="true"] { border-color: #8aa6ff; background: #f2f5ff; color: #315ce0; }
+    .pay-button { width: 100%; min-height: 49px; margin-top: 10px; border: 0; border-radius: 11px; background: #17243b; color: #fff; cursor: pointer; font-size: 13px; font-weight: 750; }
+    .pay-button:disabled { background: #b5becb; cursor: not-allowed; }
+    .payment-note { margin: 8px 0 0; color: #8792a4; font-size: 9px; line-height: 1.6; }
+    .paid-banner { display: none; margin-top: 12px; padding: 10px; border-radius: 9px; background: #eaf8f1; color: #208354; font-size: 11px; font-weight: 700; }
+    .paid-banner.visible { display: block; }
+    @media (max-width: 390px) { .kiosk-header { align-items: flex-start; gap: 8px; } .step-chip { padding: 7px 9px; font-size: 10px; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">P</span><span>PARKING NOTE</span></div>
+      <span class="status">무인 사전정산기</span>
+    </header>
+
+    <section class="layout" aria-label="주차 요금 계산기">
+      <div class="calculator">
+        <div class="kiosk-header">
+          <div>
+            <p class="eyebrow">PARKING PAYMENT KIOSK</p>
+            <h1>출차 전 요금 정산</h1>
+          </div>
+          <span class="step-chip">차량 확인</span>
+        </div>
+        <p class="intro">차량번호와 입·출차 시각을 확인하고 주차 요금을 정산해 주세요.</p>
+
+        <form id="parking-form" novalidate>
+          <div class="field-group">
+            <label class="field-label" for="plate">차량번호</label>
+            <input class="plate-input" id="plate" type="text" maxlength="10" autocomplete="off" placeholder="예: 12가 3456" required>
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">주차 시간 확인</span>
+            <div class="time-inputs">
+              <label>
+                <span class="quick-label">입차 시각</span>
+                <input class="datetime-input" id="entry-time" type="datetime-local" required>
+              </label>
+              <label>
+                <span class="quick-label">출차 시각</span>
+                <input class="datetime-input" id="exit-time" type="datetime-local" required>
+              </label>
+            </div>
+          </div>
+          <p class="quick-label">주차 시간 빠른 설정</p>
+          <div class="quick-times" aria-label="주차 시간 빠른 설정">
+            <button type="button" data-minutes="30">30분</button>
+            <button type="button" data-minutes="60">1시간</button>
+            <button type="button" data-minutes="90">1시간 30분</button>
+            <button type="button" data-minutes="120">2시간</button>
+          </div>
+          <p id="error" class="error" role="alert"></p>
+          <button class="calculate" type="submit">요금 다시 계산 <span aria-hidden="true">→</span></button>
+        </form>
+      </div>
+
+      <aside class="result-panel" aria-live="polite" aria-label="계산 결과">
+        <div>
+          <p class="result-kicker">결제하실 금액</p>
+          <div class="price"><strong id="fee">0</strong><span>원</span></div>
+          <p id="duration" class="result-time">입차·출차 시각을 확인해 주세요</p>
+          <div class="result-divider"></div>
+          <div class="tier-heading"><span id="tier-name">현재 요금 구간</span><span id="tier-price">무료</span></div>
+          <div class="progress-track" role="progressbar" aria-label="다음 요금 구간까지 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="progress" class="progress-fill"></div>
+          </div>
+          <p id="next-tier" class="next-tier">최초 30분 무료 · 이후 1시간마다 1,000원</p>
+        </div>
+
+        <div>
+          <div class="ticket">
+            <div class="ticket-head"><strong>정산 내역</strong><span>주차 요금 안내</span></div>
+            <div class="ticket-row"><span>차량번호</span><strong id="receipt-plate">미입력</strong></div>
+            <div class="ticket-row"><span>총 주차 시간</span><strong id="receipt-duration">-</strong></div>
+            <div class="ticket-row"><span>무료 적용</span><strong>최초 30분</strong></div>
+            <div class="ticket-row"><span>시간 요금</span><strong>1시간당 1,000원</strong></div>
+            <div class="ticket-row"><span>최대 요금</span><strong>10,000원</strong></div>
+          </div>
+          <div class="payment-area">
+            <p class="payment-title">결제 수단 선택</p>
+            <div class="payment-options" role="group" aria-label="결제 수단 선택">
+              <button class="payment-option" type="button" aria-pressed="true">신용카드</button>
+              <button class="payment-option" type="button" aria-pressed="false">간편결제</button>
+              <button class="payment-option" type="button" aria-pressed="false">교통카드</button>
+            </div>
+            <button id="pay-button" class="pay-button" type="button" disabled>정산 정보를 먼저 확인해 주세요</button>
+            <div id="paid-banner" class="paid-banner" role="status">정산 완료 화면 미리보기입니다. 실제 결제는 진행되지 않았습니다.</div>
+            <p class="payment-note">체험용 화면입니다. 결제 기능은 연결되어 있지 않으며 실제 금액은 주차장 요금표와 다를 수 있습니다.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#parking-form");
+    const plateInput = document.querySelector("#plate");
+    const entryInput = document.querySelector("#entry-time");
+    const exitInput = document.querySelector("#exit-time");
+    const error = document.querySelector("#error");
+    const feeOutput = document.querySelector("#fee");
+    const durationOutput = document.querySelector("#duration");
+    const tierName = document.querySelector("#tier-name");
+    const tierPrice = document.querySelector("#tier-price");
+    const progress = document.querySelector("#progress");
+    const progressBar = document.querySelector(".progress-track");
+    const nextTier = document.querySelector("#next-tier");
+    const receiptPlate = document.querySelector("#receipt-plate");
+    const receiptDuration = document.querySelector("#receipt-duration");
+    const payButton = document.querySelector("#pay-button");
+    const paidBanner = document.querySelector("#paid-banner");
+    const won = new Intl.NumberFormat("ko-KR");
+
+    function calculateFee(totalMinutes) {
+      const chargedHours = totalMinutes <= 30 ? 0 : Math.ceil((totalMinutes - 30) / 60);
+      const fee = Math.min(chargedHours * 1000, 10000);
+      const nextChargeAt = 30 + chargedHours * 60 + 1;
+      return {
+        fee,
+        chargedHours,
+        name: fee === 0 ? "무료 주차" : fee === 10000 ? "최대 요금 적용" : `${chargedHours}시간 요금`,
+        price: fee === 0 ? "무료" : `${won.format(fee)}원`,
+        next: fee === 10000 ? null : nextChargeAt
+      };
+    }
+
+    function render(totalMinutes, plate) {
+      const result = calculateFee(totalMinutes);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      feeOutput.textContent = won.format(result.fee);
+      durationOutput.textContent = `주차 시간 ${hours}시간 ${minutes}분 · 총 ${won.format(totalMinutes)}분`;
+      tierName.textContent = result.name;
+      tierPrice.textContent = result.price;
+      receiptPlate.textContent = plate;
+      receiptDuration.textContent = `${hours}시간 ${minutes}분`;
+      const progressStart = result.chargedHours === 0 ? 0 : 30 + (result.chargedHours - 1) * 60;
+      const progressEnd = progressStart + 60;
+      const percentage = result.next === null
+        ? 100
+        : Math.min(100, Math.max(0, ((totalMinutes - progressStart) / (progressEnd - progressStart)) * 100));
+      progress.style.width = `${percentage}%`;
+      progressBar.setAttribute("aria-valuenow", String(Math.round(percentage)));
+      nextTier.textContent = result.next === null
+        ? "최대 요금 10,000원이 적용되었습니다."
+        : result.fee === 0
+          ? `무료 주차 중 · ${won.format(result.next - totalMinutes)}분 후 첫 요금이 적용됩니다.`
+          : `다음 1시간 요금까지 ${won.format(result.next - totalMinutes)}분 남았어요.`;
+      payButton.disabled = false;
+      payButton.textContent = `${won.format(result.fee)}원 결제하기`;
+      paidBanner.classList.remove("visible");
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      error.textContent = "";
+
+      const plate = plateInput.value.trim();
+      const entryTime = new Date(entryInput.value);
+      const exitTime = new Date(exitInput.value);
+      if (!plate) {
+        error.textContent = "차량번호를 입력해 주세요.";
+        plateInput.focus();
+        return;
+      }
+      if (!entryInput.value || !exitInput.value || Number.isNaN(entryTime.getTime()) || Number.isNaN(exitTime.getTime())) {
+        error.textContent = "입차 시각과 출차 시각을 모두 입력해 주세요.";
+        return;
+      }
+      if (exitTime < entryTime) {
+        error.textContent = "출차 시각은 입차 시각보다 빠를 수 없습니다.";
+        exitInput.focus();
+        return;
+      }
+
+      const totalMinutes = Math.floor((exitTime - entryTime) / 60000);
+      render(totalMinutes, plate);
+    });
+
+    document.querySelectorAll("[data-minutes]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const exitTime = new Date();
+        const entryTime = new Date(exitTime.getTime() - Number(button.dataset.minutes) * 60000);
+        const toLocalValue = (date) => {
+          const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+          return local.toISOString().slice(0, 16);
+        };
+        entryInput.value = toLocalValue(entryTime);
+        exitInput.value = toLocalValue(exitTime);
+        form.requestSubmit();
+      });
+    });
+
+    document.querySelectorAll(".payment-option").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".payment-option").forEach((option) => option.setAttribute("aria-pressed", "false"));
+        button.setAttribute("aria-pressed", "true");
+      });
+    });
+
+    payButton.addEventListener("click", () => {
+      if (!payButton.disabled) {
+        paidBanner.classList.add("visible");
+        paidBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    });
+
+    const now = new Date();
+    const entry = new Date(now.getTime() - 90 * 60000);
+    const toLocalValue = (date) => {
+      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 16);
+    };
+    entryInput.value = toLocalValue(entry);
+    exitInput.value = toLocalValue(now);
+  </script>
+</body>
+</html>
